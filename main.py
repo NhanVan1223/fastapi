@@ -3,21 +3,22 @@ from fastapi import FastAPI, HTTPException
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.client_credential import ClientCredential
 from office365.sharepoint.listitems.caml.query import CamlQuery
+import os
 
 app = FastAPI()
 
 # Define your SharePoint site URL and list name
-site_url = "https://viendaukhivn.sharepoint.com/sites/H2NH3DataSource"
-list_name = "test"
+SITE_URL = "https://viendaukhivn.sharepoint.com/sites/H2NH3DataSource"
+LIST_NAME = "test"
 
-# Client credentials
-client_id = "15cf6582-65f2-4523-b3dd-d360f39bddf7"
-client_secret = "HpzgMnjfeKeOF6OZI+vIsPTi0SOdeisfeSLgPsREvAQ="
+# Use environment variables for client credentials
+CLIENT_ID = os.getenv("SHAREPOINT_CLIENT_ID", "your_client_id_here")
+CLIENT_SECRET = os.getenv("SHAREPOINT_CLIENT_SECRET", "your_client_secret_here")
 
 def get_sharepoint_list_items():
     try:
         # Authenticate using client credentials
-        ctx = ClientContext(site_url).with_credentials(ClientCredential(client_id, client_secret))
+        ctx = ClientContext(SITE_URL).with_credentials(ClientCredential(CLIENT_ID, CLIENT_SECRET))
 
         # Load the web object
         web = ctx.web
@@ -25,7 +26,7 @@ def get_sharepoint_list_items():
         ctx.execute_query()
 
         # Get the list
-        sp_list = ctx.web.lists.get_by_title(list_name)
+        sp_list = ctx.web.lists.get_by_title(LIST_NAME)
         ctx.load(sp_list)
         ctx.execute_query()
 
@@ -41,13 +42,9 @@ def get_sharepoint_list_items():
 
         return item_list
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error accessing SharePoint list: {str(e)}")
 
 @app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/items")
 def read_items():
     items = get_sharepoint_list_items()
     return {"items": items}
